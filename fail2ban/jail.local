@@ -1,0 +1,30 @@
+# Fail2ban configuration for Ubuntu VPS
+# Protects SSH and Node.js Auth Endpoints against brute-force attacks
+
+[DEFAULT]
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+destemail = admin@jeenashera.online
+sender = fail2ban@jeenashera.online
+mta = sendmail
+action = %(action_mwl)s
+
+# SSH Protection
+[sshd]
+enabled = true
+port    = ssh
+logpath = %(sshd_log)s
+backend = %(sshd_backend)s
+maxretry = 3
+bantime = 24h
+
+# Jeenash WA Admin Login Brute Force Protection
+[whatsapp-auth]
+enabled  = true
+port     = http,https
+filter   = whatsapp-auth
+logpath  = /var/log/pm2/jeenash-wa-out.log
+maxretry = 5
+findtime = 900
+bantime  = 86400

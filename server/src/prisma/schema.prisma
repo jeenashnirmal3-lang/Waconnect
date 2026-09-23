@@ -1,0 +1,150 @@
+// Prisma Database Schema for Jeenash WA Platform
+// Compatible with SQLite & PostgreSQL
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  username     String    @unique
+  passwordHash String
+  role         String    @default("ADMIN")
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Session {
+  id                    String    @id // e.g. "session_sales_1"
+  name                  String
+  phoneNumber           String?
+  status                String    @default("disconnected") // connected, connecting, waiting_qr, disconnected
+  qrCode                String?
+  pairingCode           String?
+  batteryLevel          Int?
+  platform              String?
+  totalMessagesSent     Int       @default(0)
+  totalMessagesReceived Int       @default(0)
+  lastConnectedAt       DateTime?
+  lastActiveAt          DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  chats                 Chat[]
+  messages              Message[]
+  autoReplyLogs         AutoReplyLog[]
+}
+
+model Contact {
+  id            String    @id @default(uuid())
+  name          String
+  phoneNumber   String    @unique
+  avatarUrl     String?
+  isWhitelisted Boolean   @default(false)
+  isBlacklisted Boolean   @default(false)
+  tags          String?   // JSON or comma separated string
+  notes         String?
+  lastContacted DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  chats         Chat[]
+}
+
+model Chat {
+  id                   String    @id @default(uuid())
+  sessionId            String
+  contactId            String
+  lastMessage          String?
+  lastMessageTimestamp DateTime?
+  unreadCount          Int       @default(0)
+  isArchived           Boolean   @default(false)
+  isPinned             Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  session              Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  contact              Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  messages             Message[]
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  chatId      String
+  sessionId   String
+  fromMe      Boolean  @default(false)
+  senderName  String?
+  text        String?
+  mediaType   String?  // text, image, video, audio, document
+  mediaUrl    String?
+  mediaName   String?
+  mediaSize   String?
+  status      String   @default("sent") // pending, sent, delivered, read, failed
+  isAutoReply Boolean  @default(false)
+  replyToId   String?
+  timestamp   DateTime @default(now())
+
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model AutoReplyRule {
+  id                 String   @id @default(uuid())
+  name               String
+  keywords           String   // JSON string array e.g. ["hi", "hello"]
+  matchType          String   @default("contains") // exact, contains, startsWith, endsWith, regex
+  replyType          String   @default("text") // text, image, video, document, template
+  replyContent       String
+  mediaUrl           String?
+  delaySeconds       Int      @default(2)
+  workingHoursOnly   Boolean  @default(false)
+  workingHoursStart  String?  @default("09:00")
+  workingHoursEnd    String?  @default("21:00")
+  cooldownSeconds    Int      @default(60)
+  priority           Int      @default(50)
+  enabled            Boolean  @default(true)
+  applyToSessionIds  String   @default("all") // "all" or JSON array of session IDs
+  contactFilterType  String   @default("all") // all, whitelist, blacklist
+  triggerCount       Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  logs               AutoReplyLog[]
+}
+
+model AutoReplyLog {
+  id             String        @id @default(uuid())
+  ruleId         String
+  sessionId      String
+  contactNumber  String
+  contactName    String
+  incomingText   String
+  repliedText    String
+  delayAppliedMs Int
+  status         String        // sent, skipped_cooldown, skipped_hours, error
+  timestamp      DateTime      @default(now())
+
+  rule           AutoReplyRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  session        Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  type      String   // auth, session, auto_reply, system, error
+  message   String
+  details   String?
+  level     String   @default("info") // info, warn, error
+  timestamp DateTime @default(now())
+}
+
+model Setting {
+  id    String @id
+  value String
+}

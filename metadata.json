@@ -1,0 +1,6 @@
+{
+  "name": "Jeenash WA - WhatsApp Automation Platform",
+  "description": "Production-grade, secure multi-session WhatsApp Business Automation Platform with Baileys engine, QR/pairing login, live chat, and intelligent auto-reply rules.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
